@@ -4,7 +4,7 @@ const ORDER_ATTRIBUTE = PREFIX + "order";
 const OrderEnum = Object.freeze({"ORIGINAL": 0, "ASCENDING": 1, "DESCENDING": 2})
 const sectionsNode = document.querySelector("#contents");
 const originalVideoSectionNodeMap = new Map();
-const videoSectionNode = sectionsNode.querySelector("#items");
+const videoSectionNode = sectionsNode.children[0];
 
 function getVideoNodeDurationInSeconds(videoNode) {
     const timeString = getVideoNodeTimeString(videoNode);
@@ -45,14 +45,15 @@ function datetimeToSeconds(timeString) {
 
 function sortedVideoSectionNode(videoSectionNode, descending = false) {
     const sortedVideoSectionNode = videoSectionNode.cloneNode(true);
-    const videoArray = Array.prototype.slice.call(sortedVideoSectionNode.children);
+    const videoSectionNodeItems = sortedVideoSectionNode.querySelector("#items");
+    const videoArray = Array.prototype.slice.call(videoSectionNodeItems.children);
     videoArray.sort(function(a, b) {
         if (descending) {
             return -getVideoNodeDurationInSeconds(a) + getVideoNodeDurationInSeconds(b);
         } else {
             return getVideoNodeDurationInSeconds(a) - getVideoNodeDurationInSeconds(b);
         }
-    }).forEach(element => sortedVideoSectionNode.appendChild(element));
+    }).forEach(element => videoSectionNodeItems.appendChild(element));
     return sortedVideoSectionNode;
 }
 
