@@ -8,9 +8,6 @@ const videoSectionNode = sectionsNode.children[0];
 
 function getVideoNodeDurationInSeconds(videoNode) {
     const timeString = getVideoNodeTimeString(videoNode);
-    if (timeString === "PREMIER") {
-        return -1;
-    }
     return datetimeToSeconds(timeString);
 }
 
@@ -28,12 +25,18 @@ function datetimeToSeconds(timeString) {
 
     const timeList = timeString.split(":");
     let hours, minutes, seconds;
-    if (timeList.length === 3) {
-        hours = parseInt(timeList.shift());
-    } else if (timeList.length === 2) {
-        hours = 0;
-    } else {
-        throw new Error(`Couldn't parse time string ${timeString}`);
+    switch (timeList.length) {
+        case 3:
+            hours = parseInt(timeList.shift());
+            break;
+        case 2: 
+            hours = 0;
+            break;
+        case 1:
+            console.log(`Couldn't parse timeString: "${timeString}"`);
+            return -1;
+        default:
+            throw new Error(`Unknown timeString format: "${timeString}"`);
     }
     minutes = parseInt(timeList.shift());
     seconds = parseInt(timeList.shift());
