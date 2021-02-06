@@ -8,6 +8,9 @@ const videoSectionNode = sectionsNode.children[0];
 
 function getVideoNodeDurationInSeconds(videoNode) {
     const timeString = getVideoNodeTimeString(videoNode);
+    if (timeString === "PREMIER") {
+        return -1;
+    }
     return datetimeToSeconds(timeString);
 }
 
