@@ -1,20 +1,149 @@
 const PREFIX = "evan-duration-sorter_";
 const SECTION_BUTTON_ID = PREFIX + "section-button_";
 const ORDER_ATTRIBUTE = PREFIX + "order";
-const OrderEnum = Object.freeze({"ORIGINAL": 0, "ASCENDING": 1, "DESCENDING": 2})
-const sectionsNode = document.querySelector("#contents");
-const originalVideoSectionNodeMap = new Map();
-const videoSectionNode = sectionsNode.children[0];
+const QUERIES = Object.freeze({
+    "SECTIONS": "ytd-item-section-renderer",
+    "VIDEOS": "#items",
+    "ID": "#video-title",
+    "HEADER": "#title"
+});
+const OrderEnum = Object.freeze({
+    "ORIGINAL": 0,
+    "DESCENDING": 1,
+    "ASCENDING": 2
+});
+const ButtonText = Object.freeze({
+    [OrderEnum.ORIGINAL]: "🕒",
+    [OrderEnum.DESCENDING]: "⬇️",
+    [OrderEnum.ASCENDING]: "⬆️"
+});
+const DEFAULT_ORDER = OrderEnum.ORIGINAL;
+const videoIdToUploadOrder = new Map();
 
-function getVideoNodeDurationInSeconds(videoNode) {
-    const timeString = getVideoNodeTimeString(videoNode);
+// process section
+//  make map of video ordering
+//  add button to section
+// on sort
+//  determine sorting method
+//  rearrange items
+
+function main() {
+    const sections = document.getElementsByTagName(QUERIES.SECTIONS);
+    Array.from(sections).forEach(processSection);
+    // TODO: add process section to event listener for loading new elements
+}
+
+function processSection(section) {
+    const videos = getVideos(section);
+    for (let i = 0; i < videos.length; i++) {
+        // store video upload ordering
+        let video = videos[i];
+        let id = getVideoId(video);
+        videoIdToUploadOrder.set(id, i);
+    }
+    addSectionButton(section);
+}
+
+function getVideos(section) {
+    return section.querySelector(QUERIES.VIDEOS).children;
+}
+
+function getVideoId(video) {
+    const title = video.querySelector(QUERIES.ID);
+    const url = title.href;
+    const id = url.split("=")[1];
+    return id;
+}
+
+function addSectionButton(section) {
+    const sectionHeader = section.querySelector(QUERIES.HEADER);
+    const buttonId = generateSectionButtonId(section);
+
+    // only add if doesnt have it already
+    if (sectionHeader.querySelector("#" + buttonId) == null) {
+
+        let button = document.createElement("button");
+        button.setAttribute("id", buttonId);
+        button.setAttribute(ORDER_ATTRIBUTE, DEFAULT_ORDER);
+        button.innerText = ButtonText[DEFAULT_ORDER];
+
+        sectionHeader.appendChild(button);
+
+        button.addEventListener("click", sortButtonClicked);
+    }
+}
+
+function generateSectionButtonId(section) {
+    const sectionIndex = getChildNodeIndex(section);
+    return SECTION_BUTTON_ID + sectionIndex;
+}
+
+function getChildNodeIndex(childNode) {
+    const parentNode = childNode.parentNode;
+    return Array.prototype.indexOf.call(parentNode.children, childNode);
+}
+
+function sortButtonClicked(event) {
+    const button = event.target;
+
+    const currentOrder = button.getAttribute(ORDER_ATTRIBUTE);
+    const nextOrder = (currentOrder + 1) % Object.keys(OrderEnum).length;
+    button.setAttribute(ORDER_ATTRIBUTE, nextOrder);
+
+    button.innerText = ButtonText[nextOrder];
+
+    const section = button.closest("#contents > ytd-item-section-renderer");
+    sortSection(section, nextOrder);
+}
+
+function sortSection(section, method = OrderEnum.DESCENDING) {
+    const sectionVideosNode = section.querySelector("#items");
+    const videoArray = Array.prototype.slice.call(sectionVideosNode.children);
+    videoArray.sort(
+        videoSortingFunction(method)
+    ).forEach(
+        video => sectionVideosNode.appendChild(video)
+    );
+}
+
+function videoSortingFunction(method) {
+    switch (method) {
+        case OrderEnum.ORIGINAL:
+            return comparisonSorter(getVideoUploadOrder);
+        case OrderEnum.ASCENDING:
+            return comparisonSorter(getVideoDurationInSeconds);
+        case OrderEnum.DESCENDING:
+            return comparisonSorter(getVideoDurationInSeconds, true)
+        default:
+            throw new Error(`Unknown sorting method: "${method}"`);
+    }
+}
+
+function comparisonSorter(f, reverse = false) {
+    return function(a, b) {
+        if (reverse) {
+            return - f(a) + f(b);
+        } else {
+            return f(a) - f(b);
+        }
+    }
+}
+
+function getVideoUploadOrder(video) {
+    const id = getVideoId(video);
+    const order = videoIdToUploadOrder.get(id);
+    return order;
+}
+
+function getVideoDurationInSeconds(video) {
+    const timeString = getVideoTimeString(video);
     return datetimeToSeconds(timeString);
 }
 
-function getVideoNodeTimeString(videoNode) {
+function getVideoTimeString(video) {
     // return string is either in the format [[[h]h]h:][m]m:ss, or non existent for streams.
-    const timeNode = videoNode.querySelector("#overlays > ytd-thumbnail-overlay-time-status-renderer > span");
-    return timeNode ? timeNode.innerText : -1;
+    const timeNode = video.querySelector("#overlays > ytd-thumbnail-overlay-time-status-renderer > span");
+    return timeNode ? timeNode.innerText : "LIVE NOW";
 }
 
 function datetimeToSeconds(timeString) {
@@ -29,7 +158,7 @@ function datetimeToSeconds(timeString) {
         case 3:
             hours = parseInt(timeList.shift());
             break;
-        case 2: 
+        case 2:
             hours = 0;
             break;
         case 1:
@@ -49,77 +178,4 @@ function datetimeToSeconds(timeString) {
     return totalSeconds;
 }
 
-function sortedVideoSectionNode(videoSectionNode, descending = false) {
-    const sortedVideoSectionNode = videoSectionNode.cloneNode(true);
-    const videoSectionNodeItems = sortedVideoSectionNode.querySelector("#items");
-    const videoArray = Array.prototype.slice.call(videoSectionNodeItems.children);
-    videoArray.sort(function(a, b) {
-        if (descending) {
-            return -getVideoNodeDurationInSeconds(a) + getVideoNodeDurationInSeconds(b);
-        } else {
-            return getVideoNodeDurationInSeconds(a) - getVideoNodeDurationInSeconds(b);
-        }
-    }).forEach(element => videoSectionNodeItems.appendChild(element));
-    return sortedVideoSectionNode;
-}
-
-function toggleVideoSectionSort(originalVideoSectionNodeMap, videoSectionNode, order) {
-
-    let newVideoSectionNode;
-    const videoSectionNodeIndex = getChildNodeIndex(videoSectionNode);
-    if (order === OrderEnum.ORIGINAL) {
-        newVideoSectionNode = originalVideoSectionNodeMap.get(videoSectionNodeIndex)
-            originalVideoSectionNodeMap.delete(videoSectionNodeIndex)
-    } else if (order === OrderEnum.DESCENDING || order === OrderEnum.ASCENDING) {
-        newVideoSectionNode = sortedVideoSectionNode(
-            videoSectionNode,
-            order === OrderEnum.DESCENDING
-        );
-        // save the original section
-        if (!originalVideoSectionNodeMap.has(videoSectionNodeIndex)) {
-            originalVideoSectionNodeMap[videoSectionNodeIndex] = videoSectionNode
-        }
-    } else {
-        throw new Error(`Unknown order ${order}`);
-    }
-    videoSectionNode.replaceWith(newVideoSectionNode);
-}
-
-function getChildNodeIndex(childNode) {
-    const parentNode = childNode.parentNode;
-    return Array.prototype.indexOf.call(parentNode.children, childNode);
-}
-
-function sortButtonClicked(event) {
-    const button = event.target;
-    const currentOrder = button.getAttribute(ORDER_ATTRIBUTE);
-    const nextOrder = (currentOrder + 1) % Object.keys(OrderEnum).length;
-    const videoSectionNode = button.closest("#contents > ytd-item-section-renderer");
-    button.setAttribute(ORDER_ATTRIBUTE, next);
-    toggleVideoSectionSort(originalVideoSectionNodeMap, videoSectionNode, nextOrder);
-}
-
-function generateSectionButtonId(videoSectionNode) {
-    const videoSectionNodeIndex = getChildNodeIndex(videoSectionNode);
-    return SECTION_BUTTON_ID + videoSectionNodeIndex;
-}
-
-function addButtonToVideoSection(videoSectionNode) {
-    const videoSectionHeader = sectionNode.querySelector("#title-container");
-    const buttonId = generateSectionButtonId(videoSectionNode);
-
-    // only add if doesnt have it already
-    if (videoSectionHeader.querySelector("#" + buttonId) == null) {
-
-        let button = document.createElement("div");
-        button.setAttribute("id", buttonId);
-        button.setAttribute(ORDER_ATTRIBUTE, OrderEnum.ORIGINAL);
-        button.innerText = "🕒";
-
-        videoSectionHeader.appendChild(button);
-
-        button.addEventListener("onClick", sortButtonClicked);
-    }
-}
-
-toggleVideoSectionSort(originalVideoSectionNodeMap, videoSectionNode, OrderEnum.DESCENDING);
+main();
