@@ -102,11 +102,13 @@ function sortSection(section, method = OrderEnum.DESCENDING) {
     videoArray.sort(
         videoSortingFunction(method)
     ).forEach(
+        // TODO: point free
         video => sectionVideosNode.appendChild(video)
     );
 }
 
 function videoSortingFunction(method) {
+    // TODO: turn into object
     switch (method) {
         case OrderEnum.ORIGINAL:
             return comparisonSorter(getVideoUploadOrder);
@@ -120,6 +122,7 @@ function videoSortingFunction(method) {
 }
 
 function comparisonSorter(f, reverse = false) {
+    // TODO: online
     return function(a, b) {
         if (reverse) {
             return - f(a) + f(b);
@@ -152,6 +155,7 @@ function datetimeToSeconds(timeString) {
     const MINUTES_IN_AN_HOUR = 60;
     const SECONDS_IN_AN_HOUR = MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE;
 
+    // TODO: check for LIVE NOW and PREMIERE separately
     const timeList = timeString.split(":");
     let hours, minutes, seconds;
     switch (timeList.length) {
