@@ -2,6 +2,7 @@ const PREFIX = "evan-duration-sorter_";
 const SECTION_BUTTON_ID = PREFIX + "section-button_";
 const ORDER_ATTRIBUTE = PREFIX + "order";
 const QUERIES = Object.freeze({
+    "SECTIONS_NODE": "#contents",
     "SECTIONS": "ytd-item-section-renderer",
     "VIDEOS": "#items",
     "ID": "#video-title",
@@ -28,9 +29,14 @@ const videoIdToUploadOrder = new Map();
 //  rearrange items
 
 function main() {
+    // process initial sections
     const sections = document.getElementsByTagName(QUERIES.SECTIONS);
     Array.from(sections).forEach(processSection);
-    // TODO: add process section to event listener for loading new elements
+
+    // process loaded sections
+    const observer = new MutationObserver(handleMutations);
+    const sectionsNode = document.querySelector(QUERIES.SECTIONS_NODE);
+    observer.observe(sectionsNode, {childList: true});
 }
 
 function processSection(section) {
@@ -42,6 +48,20 @@ function processSection(section) {
         videoIdToUploadOrder.set(id, i);
     }
     addSectionButton(section);
+}
+
+function handleMutations(mutations, _) {
+    Array.from(mutations)
+        .filter(
+            m => m.type === "childList" && m.addedNodes.length
+        ).forEach(
+            m => Array.from(m.addedNodes)
+                .filter(
+                    node => node.tagName.toLowerCase() === QUERIES.SECTIONS
+                ).forEach(
+                   processSection
+                )
+        );
 }
 
 function getVideos(section) {
