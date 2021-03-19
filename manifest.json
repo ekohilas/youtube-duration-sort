@@ -2,7 +2,7 @@
   "name": "Duration Sort for YouTube Subscriptions",
   "short_name": "Duration Sort",
   "description": "Adds a button to re-sort youtube subscriptions by their duration.",
-  "version": "1.0.0",
+  "version": "1.0.0.0",
   "manifest_version": 3,
   "author": {
     "name": "Evan Kohilas",
@@ -10,7 +10,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/feed/subscriptions?flow=1"],
+      "matches": ["https://www.youtube.com/feed/subscriptions"],
       "js": ["content.js"]
     }
   ],
