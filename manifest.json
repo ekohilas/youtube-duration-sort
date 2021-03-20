@@ -2,7 +2,7 @@
   "name": "Duration Sort for YouTube Subscriptions",
   "short_name": "Duration Sort",
   "description": "Adds a button to re-sort YouTube subscriptions by their duration.",
-  "version": "1.0.0.0",
+  "version": "0.1.0",
   "manifest_version": 3,
   "author": {
     "name": "Evan Kohilas",
