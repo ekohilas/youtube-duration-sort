@@ -1,4 +1,5 @@
 // Initialize butotn with users's prefered color
+/*
 let changeColor = document.getElementById("changeColor");
 
 chrome.storage.sync.get("color", ({ color }) => {
@@ -22,3 +23,4 @@ function setPageBackgroundColor() {
     document.body.style.backgroundColor = color;
   });
 }
+*/
